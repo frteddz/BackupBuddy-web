@@ -1,5 +1,7 @@
 import { useState, lazy, Suspense } from 'react';
 import { useTheme } from './hooks/useTheme';
+import { LicenseProvider, useLicense } from './licensing/LicenseProvider';
+import { AnimatedBackground } from './components/AnimatedBackground';
 
 const HomePage = lazy(() => import('./pages/HomePage').then(m => ({ default: m.HomePage })));
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
@@ -46,11 +48,18 @@ function Loading() {
 }
 
 export default function App() {
+  return <LicenseProvider productKey="BackupBuddy"><AppInner /></LicenseProvider>;
+}
+
+function AppInner() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { dark, toggle } = useTheme();
+  const { isPro, loading: proLoading, setShowProModal } = useLicense();
 
   const handleRestore = () => {
     setCurrentPage('restore');
+    setMobileMenuOpen(false);
   };
 
   const renderPage = () => {
@@ -71,12 +80,30 @@ export default function App() {
   };
 
   return (
-    <div style={{
-      display: 'flex',
-      minHeight: '100vh',
-      background: 'var(--color-background)',
-    }}>
-      <aside style={{
+    <>
+      <AnimatedBackground />
+      <button className="mobile-hamburger" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Toggle menu"
+        style={{ position: 'fixed', top: '0.75rem', left: '0.75rem', zIndex: 110, display: 'none', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)', cursor: 'pointer' }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          {mobileMenuOpen ? (
+            <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>
+          ) : (
+            <><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>
+          )}
+        </svg>
+      </button>
+      <div style={{
+        display: 'flex',
+        minHeight: '100vh',
+        background: 'var(--color-background)',
+        position: 'relative',
+        zIndex: 1,
+      }}>
+        {mobileMenuOpen && (
+          <div onClick={() => setMobileMenuOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 90 }}
+            className="mobile-overlay" />
+        )}
+        <aside className={'sidebar-nav' + (mobileMenuOpen ? ' open' : '')} style={{
         width: '220px',
         minWidth: '220px',
         background: 'var(--color-surface)',
@@ -114,6 +141,20 @@ export default function App() {
           }}>
             BackupBuddy
           </span>
+          {!proLoading && (
+            <span style={{
+              fontSize: '0.625rem',
+              fontWeight: 600,
+              padding: '0.125rem 0.375rem',
+              borderRadius: 'var(--radius-sm)',
+              background: isPro ? 'var(--color-success-light)' : 'var(--color-warning-light)',
+              color: isPro ? 'var(--color-success)' : 'var(--color-warning)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+            }}>
+              {isPro ? 'Pro' : 'Free'}
+            </span>
+          )}
         </div>
 
         <nav style={{
@@ -125,7 +166,7 @@ export default function App() {
           {navItems.map(item => (
             <button
               key={item.id}
-              onClick={() => setCurrentPage(item.id)}
+              onClick={() => { setCurrentPage(item.id); setMobileMenuOpen(false); }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -165,7 +206,35 @@ export default function App() {
           padding: '12px',
           borderTop: '1px solid var(--color-border)',
           marginTop: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
         }}>
+          {!isPro && (
+            <button
+              onClick={() => setShowProModal(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '10px 12px',
+                borderRadius: 'var(--radius-md)',
+                border: 'none',
+                background: 'var(--color-primary)',
+                color: '#fff',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+                transition: 'all var(--transition-fast)',
+                width: '100%',
+              }}
+            >
+              <span>⭐</span>
+              Upgrade to Pro
+            </button>
+          )}
+
           <button
             onClick={toggle}
             style={{
@@ -209,5 +278,6 @@ export default function App() {
         </Suspense>
       </main>
     </div>
+    </>
   );
 }

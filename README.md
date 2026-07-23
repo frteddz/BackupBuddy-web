@@ -2,6 +2,8 @@
 
 > Browser backup utility — backup, restore, and manage your browser data effortlessly.
 
+This repository contains only the built distribution files. The source code is not publicly available.
+
 ## Features
 
 - Backup browser bookmarks, history, and settings
